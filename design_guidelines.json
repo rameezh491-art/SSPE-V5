@@ -1,0 +1,85 @@
+{
+  "theme": "Light theme strongly preferred (clinical clarity, paper-like data entry), with optional dark mode for specific research query views if needed, but default to Light.",
+  "typography": {
+    "font_families": {
+      "heading": "Cabinet Grotesk",
+      "body": "Manrope",
+      "mono": "IBM Plex Mono"
+    },
+    "hierarchy_rules": {
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter text-[#172320]",
+      "h2_section": "text-2xl sm:text-3xl font-bold tracking-tight text-[#172320]",
+      "h3_card": "text-xl font-semibold tracking-tight text-[#172320]",
+      "body_base": "text-sm md:text-base font-medium leading-relaxed text-[#2C3B37]",
+      "data_labels": "text-xs font-bold uppercase tracking-[0.15em] text-[#5C6D68]"
+    },
+    "instructions_to_main_agent": "Import Cabinet Grotesk and Manrope. Use Manrope for all tables, inputs, and patient data (it has excellent numeric tabular figures). Apply tight tracking to all Cabinet Grotesk headings. Never use Inter or Roboto."
+  },
+  "colors": {
+    "archetype": "Swiss & High-Contrast meets Organic/Earthy (Clinical Trust with subtle regional homage)",
+    "palette": {
+      "background_base": "#FAFAFA",
+      "surface_card": "#FFFFFF",
+      "primary_brand": "#1B3B36",
+      "primary_brand_hover": "#264E48",
+      "secondary_accent": "#C48F38",
+      "text_primary": "#172320",
+      "text_secondary": "#5C6D68",
+      "border_subtle": "#E5E7E5",
+      "alert_critical": "#B0513A",
+      "success_green": "#2F6B4C",
+      "dykens_score_badge": "#1B3B36"
+    },
+    "instructions_to_main_agent": "Do NOT use standard medical blue or the forbidden teal (#1B93A4). Use the deep 'Pakistan Pine' (#1B3B36) as the primary anchor for CTAs and active states. Use the muted terracotta (#B0513A) for warnings or negative Dyken's score impacts instead of default red. Ensure all text on primary buttons is pure white (#FFFFFF)."
+  },
+  "layouts": {
+    "dashboard_grid": {
+      "style": "High Density Grid (Mode B)",
+      "spacing": "Tight (gap-4 to gap-6). Use grid-cols-1 md:grid-cols-3 lg:grid-cols-4 for the research view.",
+      "cards": "col-span-1 for summary metrics, col-span-2 or 3 for patient list/tables."
+    },
+    "sspe_wizard_layout": {
+      "style": "Sticky Stepper + Scrolling Form",
+      "description": "Use a 2-column layout. Left column (col-span-3) contains a sticky vertical navigation/stepper showing the 8 sections. Right column (col-span-9) contains the actual form fields. Add generous padding (p-8 to p-12) inside the right column to reduce cognitive load during heavy data entry."
+    },
+    "landing_page": {
+      "style": "Bento Grid + Editorial Asymmetry",
+      "hero": "Asymmetric split with massive Cabinet Grotesk headline on left, and a clinical data-viz graphic or image on the right. Search bar prominently placed."
+    }
+  },
+  "surfaces_and_micro_themes": {
+    "cards_and_tables": "Use the 'Grid Borders' or 'Flat Solid' strategy. No soft drop shadows. Cards must have `bg-white`, `border border-[#E5E7E5]`, and sharp `rounded-md` corners. This removes the 'SaaS template' look and makes it feel like serious medical software.",
+    "header": "Solid background (`bg-white` or `bg-[#FAFAFA]`) with a hard 1px bottom border. Absolutely NO transparent backgrounds over scrolling content, and NO glassmorphism (it creates visual refraction which is bad for health data clarity)."
+  },
+  "motion": {
+    "interactions": "Hover states on tables should have a subtle background shift (`hover:bg-[#F2F4F3]`). Tab switching and wizard steps should use Framer Motion for immediate, snappy crossfades (duration 0.2s).",
+    "alerts": "Use Sonner for toast notifications (edit requests, approvals, successful saves). Toast should enter from bottom-right with a crisp slide."
+  },
+  "component_instructions": {
+    "forms": "Use Shadcn Form, Input, Select, and Checkbox. For the 'L/R/Both' laterality controls, use segmented toggles (Radio Group styled as connected buttons) rather than standard dropdowns to save clicks.",
+    "tables": "Use Shadcn Table. Make header cells uppercase (`text-xs tracking-[0.1em] text-[#5C6D68]`). Ensure horizontal scroll on mobile.",
+    "dykens_criteria": "The auto-computed score (0/5) should be a prominent floating badge or sticky header in the wizard. It should dynamically change color: 0-2 (Gray), 3 (Warning/Ochre), 4-5 (Critical/Pine).",
+    "icons": "Use `@phosphor-icons/react` (Duotone weight for landing page, Regular/Bold for dashboard density)."
+  },
+  "image_urls": {
+    "landing_hero_bg": {
+      "url": "https://images.pexels.com/photos/4031522/pexels-photo-4031522.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Scientist in protective gear examining samples. Use as a subtle, low-opacity background for the landing page or a feature card."
+    },
+    "doctor_avatar_placeholder": {
+      "url": "https://images.unsplash.com/photo-1612531386530-97286d97c2d2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwzfHxzZXJpb3VzJTIwZG9jdG9yJTIwbmV1cm9sb2dpc3QlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODQ2NjI3Mjl8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Serious doctor portrait. Use for the Doctor Dashboard profile picture."
+    }
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You MUST NOT center align the app container. No `.App { text-align: center; }`.",
+    "Every interactive element MUST include a `data-testid` attribute (e.g., `data-testid='login-submit'`).",
+    "Do NOT use HTML-based components for advanced user interactions. Use Shadcn for dropdowns, calendars, tabs, etc.",
+    "Prioritize optical alignment over geometrical alignment.",
+    "NEVER use generic AI-slop gradients. Use flat, high-contrast colors.",
+    "Avoid using card components excessively. Go for a flat, rectangular, dense style for dashboards.",
+    "Install dependencies: `yarn add @phosphor-icons/react framer-motion sonner`.",
+    "Always provide explicit hover states (e.g., `hover:bg-[#1B3B36] hover:text-white`).",
+    "For the edit request workflow and SSPE wizard, focus heavily on data validation and clear visual hierarchy so doctors can scan rapidly."
+  ]
+}
