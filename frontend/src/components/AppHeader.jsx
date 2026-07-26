@@ -19,8 +19,8 @@ export function AppHeader() {
             <Activity className="w-4 h-4 text-white" strokeWidth={2.5} />
           </div>
           <div className="leading-none">
-            <div className="font-display text-lg text-[#172320]">NeuroHistory <span className="text-[#C48F38]">PK</span></div>
-            <div className="uppercase-label mt-0.5">Neurology Records Network</div>
+            <div className="font-display text-lg text-[#172320] leading-tight">National <span className="text-[#C48F38]">SSPE</span> Registry</div>
+            <div className="uppercase-label mt-0.5">Pakistan · Neurology Network</div>
           </div>
         </Link>
         <nav className="flex items-center gap-2">

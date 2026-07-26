@@ -39,7 +39,7 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-app = FastAPI(title="NeuroHistory PK")
+app = FastAPI(title="National SSPE Registry Pakistan")
 api = APIRouter(prefix="/api")
 
 
@@ -130,7 +130,7 @@ async def get_enums():
 
 @api.get("/")
 async def root():
-    return {"service": "NeuroHistory PK", "status": "ok"}
+    return {"service": "National SSPE Registry Pakistan", "status": "ok"}
 
 
 # ---------- Auth ----------

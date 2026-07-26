@@ -45,7 +45,7 @@ export default function Landing() {
               Pakistan's consultants.
             </h1>
             <p className="mt-6 max-w-2xl text-base md:text-lg text-[#2C3B37] leading-relaxed">
-              NeuroHistory PK is a secure platform for verified neurologists to record,
+              The National SSPE Registry Pakistan is a secure platform for verified neurologists to record,
               share, and research patient histories — with typed clinical fields, an SSPE
               intake protocol built on Dyken's Criteria, and cross-hospital edit governance.
             </p>
@@ -169,7 +169,7 @@ export default function Landing() {
       </section>
 
       <footer className="max-w-[1400px] mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-sm text-[#5C6D68]">
-        <div>© {new Date().getFullYear()} NeuroHistory PK · A registry for Pakistan's neurology community</div>
+        <div>© {new Date().getFullYear()} National SSPE Registry Pakistan · A registry for Pakistan's neurology community</div>
         <div className="uppercase-label">SSPE Protocol v1 · Dyken's Criteria</div>
       </footer>
     </div>
