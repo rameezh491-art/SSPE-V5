@@ -146,6 +146,22 @@ DEFAULT_SETTINGS = {
     "hero_description": "The National SSPE Registry Pakistan is a secure platform for verified SSPE clinicians to record, share, and research patient histories — with typed clinical fields, an SSPE intake protocol built on Dyken's Criteria, and cross-hospital edit governance.",
     "footer_text": "A national registry for SSPE surveillance & research",
     "logo_data_url": "",  # base64 data URL
+    "favicon_data_url": "",  # base64 data URL for browser tab icon
+    "accent_color": "#C48F38",  # brand accent (hex)
+    # Announcement banner
+    "announcement_enabled": False,
+    "announcement_text": "",
+    "announcement_variant": "info",  # info | warning | critical
+    # Urdu translations (optional; fall back to English if empty)
+    "site_name_ur": "",
+    "tagline_ur": "",
+    "hero_eyebrow_ur": "",
+    "hero_headline_1_ur": "",
+    "hero_headline_2_ur": "",
+    "hero_headline_3_ur": "",
+    "hero_description_ur": "",
+    "footer_text_ur": "",
+    "announcement_text_ur": "",
 }
 
 
@@ -171,10 +187,14 @@ async def get_site_settings():
 async def update_site_settings(body: dict, admin: dict = Depends(require_admin)):
     allowed = set(DEFAULT_SETTINGS.keys())
     update = {k: v for k, v in body.items() if k in allowed}
-    # Logo size guard (base64 up to ~600KB ≈ 450KB raw)
-    logo = update.get("logo_data_url")
-    if isinstance(logo, str) and len(logo) > 600_000:
-        raise HTTPException(status_code=413, detail="Logo too large — please upload an image under 400 KB")
+    # Image size guard (base64 up to ~600KB ≈ 450KB raw)
+    for key in ("logo_data_url", "favicon_data_url"):
+        val = update.get(key)
+        if isinstance(val, str) and len(val) > 600_000:
+            raise HTTPException(status_code=413, detail=f"{key.replace('_', ' ').title()} too large — please upload under 400 KB")
+    # Validate variant
+    if "announcement_variant" in update and update["announcement_variant"] not in ("info", "warning", "critical"):
+        update["announcement_variant"] = "info"
     await db.settings.update_one({"_id": "site"}, {"$set": update}, upsert=True)
     return await _get_settings_doc()
 

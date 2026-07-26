@@ -4,9 +4,28 @@ import { api, apiErrText } from "@/lib/api";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // null = checking, false = anon, obj = logged in
+  const [user, setUser] = useState(null);
   const [enums, setEnums] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [lang, setLangState] = useState(() => {
+    try { return localStorage.getItem("nspr_lang") || "en"; } catch { return "en"; }
+  });
+
+  const setLang = (l) => {
+    setLangState(l);
+    try { localStorage.setItem("nspr_lang", l); } catch {}
+  };
+
+  // Bilingual text resolver: prefer *_ur when lang === "ur" and value is non-empty
+  const t = (enText, urText) => {
+    if (lang === "ur" && urText && String(urText).trim()) return urText;
+    return enText;
+  };
+  // Convenience: get a field pair from settings automatically (e.g. tf("site_name"))
+  const tf = (key) => {
+    if (!settings) return "";
+    return t(settings[key], settings[`${key}_ur`]);
+  };
 
   const refreshSettings = async () => {
     try {
@@ -36,10 +55,28 @@ export function AuthProvider({ children }) {
         if (mounted) setSettings(data);
       } catch {}
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
+
+  // Apply favicon + accent color to <html> whenever settings change
+  useEffect(() => {
+    if (!settings) return;
+    // Accent color -> CSS variable
+    const accent = settings.accent_color || "#C48F38";
+    document.documentElement.style.setProperty("--brand-accent", accent);
+    // Favicon
+    if (settings.favicon_data_url) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = settings.favicon_data_url;
+    }
+    // Page title reflects site name
+    if (settings.site_name) document.title = settings.site_name;
+  }, [settings]);
 
   const login = async (email, password) => {
     try {
@@ -67,7 +104,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, register, logout, enums, settings, setSettings, refreshSettings }}>
+    <AuthContext.Provider value={{ user, setUser, login, register, logout, enums, settings, setSettings, refreshSettings, lang, setLang, t, tf }}>
       {children}
     </AuthContext.Provider>
   );

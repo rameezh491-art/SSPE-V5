@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, apiErrText } from "@/lib/api";
 import { AppHeader } from "@/components/AppHeader";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, ShieldCheck, Users, Database, ChartLine, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function Landing() {
-  const { settings } = useAuth();
+  const { settings, lang, tf } = useAuth();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("doctors");
   const [docResults, setDocResults] = useState([]);
@@ -34,28 +35,30 @@ export default function Landing() {
   return (
     <div className="App bg-[#FAFAFA] min-h-screen">
       <AppHeader />
+      <AnnouncementBanner />
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[#E5E7E5]">
         <div className="absolute inset-0 grid-tick opacity-40 pointer-events-none" />
         <div className="max-w-[1400px] mx-auto px-6 pt-14 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-10 relative">
           <div className="lg:col-span-8">
-            <div className="uppercase-label mb-5" data-testid="landing-tagline">{settings?.hero_eyebrow || "A national SSPE surveillance registry · Pakistan"}</div>
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] text-[#172320]">
-              {settings?.hero_headline_1 || "Structured SSPE"}<br />
+            <div className={`mb-5 ${lang==="ur" ? "font-urdu text-sm" : "uppercase-label"}`} dir={lang==="ur"?"rtl":"ltr"} data-testid="landing-tagline">{tf("hero_eyebrow") || "A national SSPE surveillance registry · Pakistan"}</div>
+            <h1 className={`text-5xl sm:text-6xl lg:text-7xl leading-[0.95] text-[#172320] ${lang==="ur" ? "font-urdu text-right" : "font-display"}`} dir={lang==="ur"?"rtl":"ltr"}>
+              {tf("hero_headline_1") || "Structured SSPE"}<br />
               {(() => {
-                const line2 = settings?.hero_headline_2 || "histories, unified for";
+                const line2 = tf("hero_headline_2") || "histories, unified for";
                 const accent = settings?.hero_headline_accent || "unified";
-                if (accent && line2.toLowerCase().includes(accent.toLowerCase())) {
+                const accentColor = settings?.accent_color || "#C48F38";
+                if (lang !== "ur" && accent && line2.toLowerCase().includes(accent.toLowerCase())) {
                   const idx = line2.toLowerCase().indexOf(accent.toLowerCase());
-                  return (<>{line2.slice(0, idx)}<span className="text-[#C48F38]">{line2.slice(idx, idx + accent.length)}</span>{line2.slice(idx + accent.length)}</>);
+                  return (<>{line2.slice(0, idx)}<span style={{ color: accentColor }}>{line2.slice(idx, idx + accent.length)}</span>{line2.slice(idx + accent.length)}</>);
                 }
                 return line2;
               })()}<br />
-              {settings?.hero_headline_3 || "Pakistan's consultants."}
+              {tf("hero_headline_3") || "Pakistan's consultants."}
             </h1>
-            <p className="mt-6 max-w-2xl text-base md:text-lg text-[#2C3B37] leading-relaxed">
-              {settings?.hero_description || "The National SSPE Registry Pakistan is a secure platform for verified SSPE clinicians to record, share, and research patient histories — with typed clinical fields, an SSPE intake protocol built on Dyken's Criteria, and cross-hospital edit governance."}
+            <p className={`mt-6 max-w-2xl text-[#2C3B37] ${lang==="ur" ? "font-urdu text-lg leading-loose text-right" : "text-base md:text-lg leading-relaxed"}`} dir={lang==="ur"?"rtl":"ltr"}>
+              {tf("hero_description") || "The National SSPE Registry Pakistan is a secure platform for verified SSPE clinicians to record, share, and research patient histories — with typed clinical fields, an SSPE intake protocol built on Dyken's Criteria, and cross-hospital edit governance."}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/register" className="btn-pine px-6 py-3 text-sm font-semibold inline-flex items-center gap-2" data-testid="cta-register">
@@ -177,7 +180,7 @@ export default function Landing() {
       </section>
 
       <footer className="max-w-[1400px] mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-sm text-[#5C6D68]">
-        <div>© {new Date().getFullYear()} {settings?.site_name || "National SSPE Registry"} · {settings?.footer_text || "A national registry for SSPE surveillance & research"}</div>
+        <div className={lang==="ur" ? "font-urdu text-right w-full" : ""} dir={lang==="ur"?"rtl":"ltr"}>© {new Date().getFullYear()} {tf("site_name") || "National SSPE Registry"} · {tf("footer_text") || "A national registry for SSPE surveillance & research"}</div>
         <div className="uppercase-label">SSPE Protocol v1 · Dyken's Criteria</div>
       </footer>
     </div>
