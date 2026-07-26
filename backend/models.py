@@ -53,7 +53,7 @@ class DoctorRegister(BaseModel):
     specialty: str
     hospital: str
     city: str
-    phone: Optional[str] = None
+    phone: str = Field(min_length=6, description="Contact phone number (required)")
 
 
 class LoginRequest(BaseModel):

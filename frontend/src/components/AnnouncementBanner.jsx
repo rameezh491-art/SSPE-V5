@@ -9,20 +9,17 @@ const VARIANTS = {
 };
 
 export function AnnouncementBanner() {
-  const { settings, lang, tf } = useAuth();
+  const { settings } = useAuth();
   if (!settings?.announcement_enabled) return null;
-  const text = tf("announcement_text");
+  const text = settings.announcement_text;
   if (!text || !String(text).trim()) return null;
   const variant = VARIANTS[settings.announcement_variant] || VARIANTS.info;
   const { Icon } = variant;
-  const isUr = lang === "ur";
   return (
     <div style={{ backgroundColor: variant.bg, color: variant.fg }} data-testid="announcement-banner">
       <div className="max-w-[1400px] mx-auto px-6 py-2.5 flex items-center gap-3">
         <Icon className="w-4 h-4 shrink-0" />
-        <div className={`text-sm ${isUr ? "font-urdu text-right w-full" : ""}`} dir={isUr ? "rtl" : "ltr"}>
-          {text}
-        </div>
+        <div className="text-sm">{text}</div>
       </div>
     </div>
   );

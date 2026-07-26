@@ -152,16 +152,6 @@ DEFAULT_SETTINGS = {
     "announcement_enabled": False,
     "announcement_text": "",
     "announcement_variant": "info",  # info | warning | critical
-    # Urdu translations (optional; fall back to English if empty)
-    "site_name_ur": "",
-    "tagline_ur": "",
-    "hero_eyebrow_ur": "",
-    "hero_headline_1_ur": "",
-    "hero_headline_2_ur": "",
-    "hero_headline_3_ur": "",
-    "hero_description_ur": "",
-    "footer_text_ur": "",
-    "announcement_text_ur": "",
 }
 
 

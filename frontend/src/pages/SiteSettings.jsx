@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Upload, RotateCcw, Save, ImageIcon, Palette, Megaphone, Languages } from "lucide-react";
+import { Upload, RotateCcw, Save, ImageIcon, Palette, Megaphone } from "lucide-react";
 
 const BRAND_FIELDS = [
   { key: "site_name", label: "Site name" },
@@ -21,30 +21,6 @@ const BRAND_FIELDS = [
   { key: "hero_description", label: "Hero description", multiline: true },
   { key: "footer_text", label: "Footer text" },
 ];
-
-const URDU_FIELDS = [
-  { key: "site_name_ur", label: "Site name · Urdu" },
-  { key: "tagline_ur", label: "Header tagline · Urdu" },
-  { key: "hero_eyebrow_ur", label: "Landing eyebrow · Urdu" },
-  { key: "hero_headline_1_ur", label: "Hero line 1 · Urdu" },
-  { key: "hero_headline_2_ur", label: "Hero line 2 · Urdu" },
-  { key: "hero_headline_3_ur", label: "Hero line 3 · Urdu" },
-  { key: "hero_description_ur", label: "Hero description · Urdu", multiline: true },
-  { key: "footer_text_ur", label: "Footer text · Urdu" },
-  { key: "announcement_text_ur", label: "Announcement · Urdu" },
-];
-
-const URDU_DEFAULTS = {
-  site_name_ur: "قومی SSPE رجسٹری",
-  tagline_ur: "پاکستان · SSPE نگرانی نیٹ ورک",
-  hero_eyebrow_ur: "قومی SSPE نگرانی رجسٹری · پاکستان",
-  hero_headline_1_ur: "منظم SSPE",
-  hero_headline_2_ur: "تاریخیں، متحد",
-  hero_headline_3_ur: "پاکستان کے ماہرین کے لیے",
-  hero_description_ur: "قومی SSPE رجسٹری پاکستان تصدیق شدہ SSPE معالجین کے لیے مریضوں کی تاریخ محفوظ طور پر ریکارڈ، اشتراک اور تحقیق کرنے کا ایک محفوظ پلیٹ فارم ہے — طے شدہ طبی خانوں، ڈائیکن کے معیار پر مبنی SSPE داخلہ پروٹوکول، اور بین الاسپتال ترمیم کے نظم و نسق کے ساتھ۔",
-  footer_text_ur: "SSPE نگرانی اور تحقیق کے لیے قومی رجسٹری",
-  announcement_text_ur: "",
-};
 
 export default function SiteSettings() {
   const { settings, setSettings } = useAuth();
@@ -71,7 +47,7 @@ export default function SiteSettings() {
   };
 
   const reset = async () => {
-    if (!window.confirm("Reset all site settings to defaults? Logo, favicon and Urdu translations will also be cleared.")) return;
+    if (!window.confirm("Reset all site settings to defaults? Logo, favicon and announcement banner will also be cleared.")) return;
     setBusy(true);
     try {
       const { data } = await api.post("/settings/site/reset");
@@ -91,35 +67,26 @@ export default function SiteSettings() {
     reader.readAsDataURL(file);
   };
 
-  const fillUrduDefaults = () => {
-    setForm((s) => ({ ...s, ...Object.fromEntries(Object.entries(URDU_DEFAULTS).map(([k, v]) => [k, s[k] || v])) }));
-    toast.success("Filled Urdu placeholders. Edit and Save when ready.");
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        {/* Branding */}
         <Panel title="Branding & content" subtitle="Applies across the header, landing page, and footer">
           {BRAND_FIELDS.map((f) => (
             <FormField key={f.key} field={f} value={form[f.key]} onChange={(v)=>set(f.key, v)}/>
           ))}
         </Panel>
 
-        {/* Appearance */}
         <Panel title="Appearance" subtitle="Logo, favicon, and accent color" icon={Palette}>
           <div>
             <Label className="uppercase-label">Logo</Label>
             <div className="text-xs text-[#5C6D68] mt-1 mb-2">PNG or SVG under 400 KB. Displayed at 36px in the header.</div>
             <ImagePicker inputRef={logoRef} url={form.logo_data_url} onFile={uploadImage("logo_data_url", 400)} onClear={()=>set("logo_data_url", "")} testId="ss-logo"/>
           </div>
-
           <div>
             <Label className="uppercase-label">Favicon</Label>
             <div className="text-xs text-[#5C6D68] mt-1 mb-2">PNG, SVG or ICO under 100 KB. Appears in the browser tab.</div>
             <ImagePicker inputRef={faviconRef} url={form.favicon_data_url} onFile={uploadImage("favicon_data_url", 100)} onClear={()=>set("favicon_data_url", "")} testId="ss-favicon"/>
           </div>
-
           <div>
             <Label className="uppercase-label">Accent color</Label>
             <div className="text-xs text-[#5C6D68] mt-1 mb-2">Used for highlighted words in the site name and hero headline.</div>
@@ -135,7 +102,6 @@ export default function SiteSettings() {
           </div>
         </Panel>
 
-        {/* Announcement */}
         <Panel title="Announcement banner" subtitle="Show a message at the top of the landing page" icon={Megaphone}>
           <div className="flex items-center justify-between">
             <div>
@@ -166,20 +132,6 @@ export default function SiteSettings() {
           </div>
         </Panel>
 
-        {/* Urdu translations */}
-        <Panel title="Urdu translations" subtitle="Optional. When set, users can toggle to Urdu from the header." icon={Languages}>
-          <div className="flex items-center justify-between border-b border-[#E5E7E5] pb-3">
-            <div className="text-xs text-[#5C6D68]">Leave any field empty to fall back to the English version.</div>
-            <Button type="button" variant="outline" onClick={fillUrduDefaults} className="rounded-none btn-outline-pine h-9 text-xs" data-testid="ss-urdu-defaults">
-              Fill suggested placeholders
-            </Button>
-          </div>
-          {URDU_FIELDS.map((f) => (
-            <FormField key={f.key} field={f} value={form[f.key]} onChange={(v)=>set(f.key, v)} urdu/>
-          ))}
-        </Panel>
-
-        {/* Action bar */}
         <div className="flex items-center justify-between bg-white border border-[#E5E7E5] p-4 sticky bottom-4">
           <Button variant="outline" onClick={reset} disabled={busy} className="rounded-none border-[#B0513A] text-[#B0513A] hover:bg-[#B0513A] hover:text-white" data-testid="ss-reset">
             <RotateCcw className="w-4 h-4 mr-2"/> Reset to defaults
@@ -190,7 +142,6 @@ export default function SiteSettings() {
         </div>
       </div>
 
-      {/* Preview */}
       <div className="space-y-4">
         <div className="bg-white border border-[#E5E7E5] sticky top-24">
           <div className="p-4 border-b border-[#E5E7E5]">
@@ -209,7 +160,6 @@ export default function SiteSettings() {
   );
 }
 
-/* ---------- Sub-components ---------- */
 function Panel({ title, subtitle, icon: Icon, children }) {
   return (
     <div className="bg-white border border-[#E5E7E5]">
@@ -225,15 +175,15 @@ function Panel({ title, subtitle, icon: Icon, children }) {
   );
 }
 
-function FormField({ field, value, onChange, urdu }) {
+function FormField({ field, value, onChange }) {
   return (
     <div>
       <Label className="uppercase-label">{field.label}</Label>
       {field.hint && <div className="text-xs text-[#5C6D68] mt-1 mb-1">{field.hint}</div>}
       {field.multiline ? (
-        <Textarea rows={4} value={value || ""} onChange={(e)=>onChange(e.target.value)} className={`rounded-none focus-visible:ring-[#1B3B36] mt-1 ${urdu ? "font-urdu text-lg text-right" : ""}`} dir={urdu ? "rtl" : "ltr"} data-testid={`ss-${field.key}`}/>
+        <Textarea rows={4} value={value || ""} onChange={(e)=>onChange(e.target.value)} className="rounded-none focus-visible:ring-[#1B3B36] mt-1" data-testid={`ss-${field.key}`}/>
       ) : (
-        <Input value={value || ""} onChange={(e)=>onChange(e.target.value)} className={`rounded-none focus-visible:ring-[#1B3B36] mt-1 ${urdu ? "font-urdu text-lg text-right" : ""}`} dir={urdu ? "rtl" : "ltr"} data-testid={`ss-${field.key}`}/>
+        <Input value={value || ""} onChange={(e)=>onChange(e.target.value)} className="rounded-none focus-visible:ring-[#1B3B36] mt-1" data-testid={`ss-${field.key}`}/>
       )}
     </div>
   );

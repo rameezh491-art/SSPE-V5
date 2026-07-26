@@ -1,25 +1,22 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Activity, Languages } from "lucide-react";
+import { LogOut, Activity } from "lucide-react";
 
 export function AppHeader() {
-  const { user, logout, settings, lang, setLang, tf } = useAuth();
+  const { user, logout, settings } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const onLogout = async () => { await logout(); nav("/"); };
 
-  const name = settings ? tf("site_name") : "National SSPE Registry";
+  const name = settings?.site_name || "National SSPE Registry";
   const accent = settings?.site_name_accent || "SSPE";
-  const tagline = settings ? tf("tagline") : "Pakistan · SSPE Surveillance Network";
+  const tagline = settings?.tagline || "Pakistan · SSPE Surveillance Network";
   const logo = settings?.logo_data_url;
   const accentColor = settings?.accent_color || "#C48F38";
-  const isUr = lang === "ur";
 
   const renderName = () => {
-    if (isUr || !accent || !name.toLowerCase().includes(accent.toLowerCase())) {
-      return <>{name}</>;
-    }
+    if (!accent || !name.toLowerCase().includes(accent.toLowerCase())) return <>{name}</>;
     const idx = name.toLowerCase().indexOf(accent.toLowerCase());
     return (<>{name.slice(0, idx)}<span style={{ color: accentColor }}>{name.slice(idx, idx + accent.length)}</span>{name.slice(idx + accent.length)}</>);
   };
@@ -35,21 +32,12 @@ export function AppHeader() {
               <Activity className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
           )}
-          <div className="leading-none" dir={isUr ? "rtl" : "ltr"}>
-            <div className={`text-lg text-[#172320] leading-tight ${isUr ? "font-urdu" : "font-display"}`}>{renderName()}</div>
-            <div className={`mt-0.5 ${isUr ? "font-urdu text-xs" : "uppercase-label"}`}>{tagline}</div>
+          <div className="leading-none">
+            <div className="font-display text-lg text-[#172320] leading-tight">{renderName()}</div>
+            <div className="uppercase-label mt-0.5">{tagline}</div>
           </div>
         </Link>
         <nav className="flex items-center gap-2">
-          {/* Language toggle */}
-          <div className="flex items-center border border-[#E5E7E5] overflow-hidden mr-1" data-testid="lang-toggle">
-            <button onClick={() => setLang("en")} className={`px-2.5 py-1.5 text-xs font-semibold ${lang==="en"?"bg-[#1B3B36] text-white":"bg-white text-[#172320] hover:bg-[#F2F4F3]"}`} data-testid="lang-en" title="English">
-              <Languages className="w-3.5 h-3.5 inline mr-1"/>EN
-            </button>
-            <button onClick={() => setLang("ur")} className={`px-2.5 py-1.5 text-xs font-semibold ${lang==="ur"?"bg-[#1B3B36] text-white":"bg-white text-[#172320] hover:bg-[#F2F4F3]"}`} data-testid="lang-ur" title="اردو">
-              اردو
-            </button>
-          </div>
           {!user && (
             <>
               <Link to="/login" className="px-4 py-2 text-sm font-semibold text-[#172320] hover:bg-[#F2F4F3]" data-testid="nav-doctor-login">Doctor Login</Link>

@@ -64,8 +64,8 @@ export default function Register() {
           <Field label="City" required>
             <Input value={form.city} onChange={(e)=>set("city", e.target.value)} required data-testid="reg-city" className="rounded-none focus-visible:ring-[#1B3B36]" />
           </Field>
-          <Field label="Phone">
-            <Input value={form.phone} onChange={(e)=>set("phone", e.target.value)} data-testid="reg-phone" className="rounded-none focus-visible:ring-[#1B3B36]" />
+          <Field label="Phone" required>
+            <Input value={form.phone} onChange={(e)=>set("phone", e.target.value)} required data-testid="reg-phone" placeholder="e.g. +92 300 1234567" className="rounded-none focus-visible:ring-[#1B3B36]" />
           </Field>
           {err && <div className="md:col-span-2 text-sm text-[#B0513A]" data-testid="reg-error">{err}</div>}
           <div className="md:col-span-2 flex items-center justify-between mt-2">
