@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Check, X, ShieldOff, ShieldCheck, RefreshCcw } from "lucide-react";
+import { Search, Check, X, ShieldOff, ShieldCheck, RefreshCcw, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import SiteSettings from "@/pages/SiteSettings";
 
 export default function AdminDashboard() {
   const nav = useNavigate();
@@ -48,6 +49,7 @@ export default function AdminDashboard() {
           <TabsList className="bg-white border border-[#E5E7E5] rounded-none">
             <TabsTrigger value="doctors" data-testid="admin-tab-doctors">Doctors</TabsTrigger>
             <TabsTrigger value="patients" data-testid="admin-tab-patients">Patient Records</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="admin-tab-settings"><Settings className="w-3.5 h-3.5 mr-1.5"/>Site Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="doctors" className="mt-6">
@@ -154,6 +156,10 @@ export default function AdminDashboard() {
                 </TableBody>
               </Table>
             </div>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-6">
+            <SiteSettings />
           </TabsContent>
         </Tabs>
       </div>

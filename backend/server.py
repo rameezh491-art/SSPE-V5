@@ -133,6 +133,58 @@ async def root():
     return {"service": "National SSPE Registry Pakistan", "status": "ok"}
 
 
+# ---------- Site Settings ----------
+DEFAULT_SETTINGS = {
+    "site_name": "National SSPE Registry",
+    "site_name_accent": "SSPE",
+    "tagline": "Pakistan · SSPE Surveillance Network",
+    "hero_eyebrow": "A national SSPE surveillance registry · Pakistan",
+    "hero_headline_1": "Structured SSPE",
+    "hero_headline_2": "histories, unified for",
+    "hero_headline_3": "Pakistan's consultants.",
+    "hero_headline_accent": "unified",
+    "hero_description": "The National SSPE Registry Pakistan is a secure platform for verified SSPE clinicians to record, share, and research patient histories — with typed clinical fields, an SSPE intake protocol built on Dyken's Criteria, and cross-hospital edit governance.",
+    "footer_text": "A national registry for SSPE surveillance & research",
+    "logo_data_url": "",  # base64 data URL
+}
+
+
+async def _get_settings_doc() -> dict:
+    doc = await db.settings.find_one({"_id": "site"})
+    if not doc:
+        return dict(DEFAULT_SETTINGS)
+    out = dict(DEFAULT_SETTINGS)
+    for k, v in doc.items():
+        if k == "_id":
+            continue
+        if v is not None:
+            out[k] = v
+    return out
+
+
+@api.get("/settings/site")
+async def get_site_settings():
+    return await _get_settings_doc()
+
+
+@api.put("/settings/site")
+async def update_site_settings(body: dict, admin: dict = Depends(require_admin)):
+    allowed = set(DEFAULT_SETTINGS.keys())
+    update = {k: v for k, v in body.items() if k in allowed}
+    # Logo size guard (base64 up to ~600KB ≈ 450KB raw)
+    logo = update.get("logo_data_url")
+    if isinstance(logo, str) and len(logo) > 600_000:
+        raise HTTPException(status_code=413, detail="Logo too large — please upload an image under 400 KB")
+    await db.settings.update_one({"_id": "site"}, {"$set": update}, upsert=True)
+    return await _get_settings_doc()
+
+
+@api.post("/settings/site/reset")
+async def reset_site_settings(admin: dict = Depends(require_admin)):
+    await db.settings.delete_one({"_id": "site"})
+    return await _get_settings_doc()
+
+
 # ---------- Auth ----------
 @api.post("/auth/register")
 async def register(body: DoctorRegister, response: Response):

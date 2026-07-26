@@ -6,6 +6,17 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // null = checking, false = anon, obj = logged in
   const [enums, setEnums] = useState(null);
+  const [settings, setSettings] = useState(null);
+
+  const refreshSettings = async () => {
+    try {
+      const { data } = await api.get("/settings/site");
+      setSettings(data);
+      return data;
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -19,6 +30,10 @@ export function AuthProvider({ children }) {
       try {
         const { data } = await api.get("/meta/enums");
         if (mounted) setEnums(data);
+      } catch {}
+      try {
+        const { data } = await api.get("/settings/site");
+        if (mounted) setSettings(data);
       } catch {}
     })();
     return () => {
@@ -52,7 +67,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, register, logout, enums }}>
+    <AuthContext.Provider value={{ user, setUser, login, register, logout, enums, settings, setSettings, refreshSettings }}>
       {children}
     </AuthContext.Provider>
   );
