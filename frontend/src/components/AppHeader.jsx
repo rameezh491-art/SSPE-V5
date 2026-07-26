@@ -20,7 +20,7 @@ export function AppHeader() {
           </div>
           <div className="leading-none">
             <div className="font-display text-lg text-[#172320] leading-tight">National <span className="text-[#C48F38]">SSPE</span> Registry</div>
-            <div className="uppercase-label mt-0.5">Pakistan · Neurology Network</div>
+            <div className="uppercase-label mt-0.5">Pakistan · SSPE Surveillance Network</div>
           </div>
         </Link>
         <nav className="flex items-center gap-2">

@@ -38,14 +38,14 @@ export default function Landing() {
         <div className="absolute inset-0 grid-tick opacity-40 pointer-events-none" />
         <div className="max-w-[1400px] mx-auto px-6 pt-14 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-10 relative">
           <div className="lg:col-span-8">
-            <div className="uppercase-label mb-5" data-testid="landing-tagline">A national research registry · Pakistan</div>
+            <div className="uppercase-label mb-5" data-testid="landing-tagline">A national SSPE surveillance registry · Pakistan</div>
             <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] text-[#172320]">
-              Structured neurology<br />
+              Structured SSPE<br />
               histories, <span className="text-[#C48F38]">unified</span> for<br />
               Pakistan's consultants.
             </h1>
             <p className="mt-6 max-w-2xl text-base md:text-lg text-[#2C3B37] leading-relaxed">
-              The National SSPE Registry Pakistan is a secure platform for verified neurologists to record,
+              The National SSPE Registry Pakistan is a secure platform for verified SSPE clinicians to record,
               share, and research patient histories — with typed clinical fields, an SSPE
               intake protocol built on Dyken's Criteria, and cross-hospital edit governance.
             </p>
@@ -88,7 +88,7 @@ export default function Landing() {
                 {error && <div className="mt-3 text-sm text-[#B0513A]">{error}</div>}
                 <TabsContent value="doctors" className="mt-4">
                   <div className="divide-y divide-[#E5E7E5] border border-[#E5E7E5] max-h-[300px] overflow-auto">
-                    {docResults.length === 0 && <div className="p-4 text-sm text-[#5C6D68]">No results yet. Try "Karachi" or "Neurology".</div>}
+                    {docResults.length === 0 && <div className="p-4 text-sm text-[#5C6D68]">No results yet. Try "Karachi" or "SSPE".</div>}
                     {docResults.map((d) => (
                       <div key={d.id} className="p-4 flex items-center justify-between row-hover" data-testid={`doctor-result-${d.id}`}>
                         <div>
@@ -156,8 +156,8 @@ export default function Landing() {
         <div className="max-w-[1400px] mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-3 gap-px bg-[#E5E7E5]">
           {[
             { icon: Database, title: "Structured Intake", body: "8-section SSPE wizard with typed fields — ethnicity, province, symptoms with L/R laterality, vaccination doses, and diagnostic tests with file upload." },
-            { icon: Users, title: "Cross-Hospital Sharing", body: "Every verified doctor can view any record for referrals. Editing requires an approved request from the owning doctor." },
-            { icon: ChartLine, title: "National Research", body: "Filter across region, age, symptoms, Dyken's score, vaccination status. Export de-identified CSVs for research." },
+            { icon: Users, title: "Cross-Hospital Sharing", body: "Every verified clinician can view any SSPE record for referrals and second opinions. Editing requires an approved request from the owning doctor." },
+            { icon: ChartLine, title: "SSPE Research", body: "Filter across region, age, symptoms, Dyken's score, and measles vaccination status. Export de-identified CSVs for epidemiological studies." },
           ].map(({ icon: Icon, title, body }, i) => (
             <div key={i} className="bg-white p-8">
               <Icon className="w-6 h-6 text-[#1B3B36]" strokeWidth={2} />
@@ -169,7 +169,7 @@ export default function Landing() {
       </section>
 
       <footer className="max-w-[1400px] mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-sm text-[#5C6D68]">
-        <div>© {new Date().getFullYear()} National SSPE Registry Pakistan · A registry for Pakistan's neurology community</div>
+        <div>© {new Date().getFullYear()} National SSPE Registry Pakistan · A national registry for SSPE surveillance &amp; research</div>
         <div className="uppercase-label">SSPE Protocol v1 · Dyken's Criteria</div>
       </footer>
     </div>
