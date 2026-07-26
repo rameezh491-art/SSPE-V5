@@ -11,7 +11,8 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Search, Plus, Check, X, Download, FileText, Lock, ShieldCheck } from "lucide-react";
+import { Search, Plus, Check, X, Download, FileText, Lock, ShieldCheck, Share2 } from "lucide-react";
+import ShareAccessDialog from "@/components/ShareAccessDialog";
 
 export default function DoctorDashboard() {
   const { user, enums } = useAuth();
@@ -24,6 +25,7 @@ export default function DoctorDashboard() {
   const [reqsOut, setReqsOut] = useState([]);
   const [research, setResearch] = useState({ province: "", city: "", ethnicity: "", gender: "", age_min: "", age_max: "", symptoms_any: [], dykens_min: "", dykens_max: "", measles_vaccine_received: "" });
   const [researchResult, setResearchResult] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const isVerified = user?.status === "verified";
 
@@ -108,6 +110,20 @@ export default function DoctorDashboard() {
             <Plus className="w-4 h-4 mr-2"/>New Patient History
           </Button>
         </div>
+
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <Button onClick={()=>setShareOpen(true)} variant="outline" className="rounded-none btn-outline-pine" disabled={mine.length===0} data-testid="btn-share-access" title={mine.length===0?"Create a patient first":"Share edit access with another doctor"}>
+            <Share2 className="w-4 h-4 mr-2"/>Share edit access
+          </Button>
+          <div className="text-xs text-[#5C6D68]">Proactively grant another verified doctor edit rights on all or specific patients you own.</div>
+        </div>
+
+        <ShareAccessDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          myPatients={mine}
+          onGranted={() => { loadPatients(); loadReqs(); }}
+        />
 
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList className="bg-white border border-[#E5E7E5] rounded-none p-0">

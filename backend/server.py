@@ -352,6 +352,122 @@ async def get_patient(pid: str, user: dict = Depends(require_verified_doctor)):
     return _patient_out(p, user)
 
 
+# ---------- Doctor directory (for share-access picker) ----------
+@api.get("/doctors")
+async def list_verified_doctors(q: Optional[str] = None, user: dict = Depends(require_verified_doctor)):
+    """Return verified doctors excluding the current user, for the share-access picker."""
+    filt: dict = {"role": "doctor", "status": "verified"}
+    if q:
+        filt["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}},
+            {"hospital": {"$regex": q, "$options": "i"}},
+            {"specialty": {"$regex": q, "$options": "i"}},
+            {"city": {"$regex": q, "$options": "i"}},
+        ]
+    docs = await db.users.find(filt, {"password_hash": 0}).sort("name", 1).limit(200).to_list(200)
+    out = []
+    for d in docs:
+        uid = str(d["_id"])
+        if uid == user["id"]:
+            continue
+        out.append({
+            "id": uid,
+            "name": d.get("name"),
+            "specialty": d.get("specialty"),
+            "hospital": d.get("hospital"),
+            "city": d.get("city"),
+            "email": d.get("email"),
+        })
+    return out
+
+
+# ---------- Bulk share edit access (owner-initiated) ----------
+@api.post("/patients/share-edit")
+async def share_edit_access(body: dict, user: dict = Depends(require_verified_doctor)):
+    """Owner-initiated grant of edit access to a target doctor.
+
+    Body: {
+      "target_doctor_id": str,   # required
+      "scope": "all" | "selected", # required
+      "patient_ids": [str],       # required when scope == "selected"
+      "message": str              # optional (recorded in audit log)
+    }
+    """
+    target_id = body.get("target_doctor_id")
+    scope = body.get("scope", "selected")
+    patient_ids = body.get("patient_ids") or []
+    message = body.get("message") or ""
+
+    if not target_id:
+        raise HTTPException(status_code=400, detail="target_doctor_id is required")
+    if target_id == user["id"]:
+        raise HTTPException(status_code=400, detail="You cannot share with yourself")
+    if scope not in ("all", "selected"):
+        raise HTTPException(status_code=400, detail="scope must be 'all' or 'selected'")
+    if scope == "selected" and not patient_ids:
+        raise HTTPException(status_code=400, detail="patient_ids is required when scope is 'selected'")
+
+    # Verify target is a verified doctor
+    try:
+        target = await db.users.find_one({"_id": ObjectId(target_id), "role": "doctor"})
+    except Exception:
+        target = None
+    if not target:
+        raise HTTPException(status_code=404, detail="Target doctor not found")
+    if target.get("status") != "verified":
+        raise HTTPException(status_code=400, detail="Target doctor is not verified")
+
+    # Determine which patients to touch (must be owned by current user)
+    owned_filter: dict = {"owner_id": user["id"]}
+    if scope == "selected":
+        owned_filter["id"] = {"$in": patient_ids}
+    owned = await db.patients.find(owned_filter, {"id": 1, "authorized_editors": 1, "section2.full_name": 1}).to_list(2000)
+
+    if not owned:
+        raise HTTPException(status_code=404, detail="No matching patients you own")
+
+    granted = 0
+    already = 0
+    for p in owned:
+        if target_id in (p.get("authorized_editors") or []):
+            already += 1
+            continue
+        await db.patients.update_one({"id": p["id"]}, {"$addToSet": {"authorized_editors": target_id}})
+        await _audit(p["id"], user, "grant_edit_proactive", {
+            "grantee_id": target_id,
+            "grantee_name": target.get("name"),
+            "message": message,
+        })
+        granted += 1
+
+    # Also drop a "resolved" note in edit_requests so the target doctor sees it in their Outgoing/History view
+    if granted > 0:
+        await db.edit_requests.insert_one({
+            "id": str(uuid.uuid4()),
+            "patient_id": None,  # bulk grant, not tied to a single request
+            "patient_name": f"{granted} patient record(s)",
+            "requester_id": target_id,
+            "requester_name": target.get("name"),
+            "requester_specialty": target.get("specialty", ""),
+            "requester_hospital": target.get("hospital", ""),
+            "owner_id": user["id"],
+            "owner_name": user["name"],
+            "message": message,
+            "status": "approved",
+            "kind": "proactive_grant",
+            "created_at": _now_iso(),
+            "resolved_at": _now_iso(),
+        })
+
+    return {
+        "ok": True,
+        "granted": granted,
+        "already_had_access": already,
+        "target": {"id": target_id, "name": target.get("name")},
+    }
+
+
 @api.put("/patients/{pid}")
 async def update_patient(pid: str, body: PatientCreate, user: dict = Depends(require_verified_doctor)):
     p = await db.patients.find_one({"id": pid})
