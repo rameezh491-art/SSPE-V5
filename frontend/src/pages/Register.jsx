@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CnicUploader from "@/components/CnicUploader";
 import { toast } from "sonner";
 
 export default function Register() {
   const { register, enums } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({
-    name: "", email: "", password: "", cnic_or_pmdc: "", specialty: "Neurology", hospital: "", city: "", phone: "",
+    name: "", email: "", password: "", cnic_or_pmdc: "", specialty: "Neurology", hospital: "", city: "", phone: "", cnic_card_data_url: "",
   });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,6 +22,7 @@ export default function Register() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.cnic_card_data_url) { setErr("Please upload a picture of your CNIC / PMDC card."); return; }
     setBusy(true); setErr("");
     const r = await register(form);
     setBusy(false);
@@ -36,12 +38,13 @@ export default function Register() {
         <div className="uppercase-label">Doctor registration</div>
         <h1 className="font-display text-4xl mt-2 text-[#172320]">Join the registry</h1>
         <p className="mt-2 text-sm text-[#5C6D68]">Your account will be reviewed by an administrator. You'll be able to sign in immediately but access to records unlocks after verification.</p>
+        <div className="mt-3 text-xs text-[#5C6D68]">Not a clinician? <Link to="/register-data-collector" className="text-[#1B3B36] underline font-semibold">Register as a data collector →</Link></div>
 
         <form onSubmit={submit} className="mt-8 bg-white border border-[#E5E7E5] p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="Full name" required>
             <Input value={form.name} onChange={(e)=>set("name", e.target.value)} required data-testid="reg-name" className="rounded-none focus-visible:ring-[#1B3B36]" />
           </Field>
-          <Field label="CNIC / PMDC registration">
+          <Field label="CNIC / PMDC registration" required>
             <Input value={form.cnic_or_pmdc} onChange={(e)=>set("cnic_or_pmdc", e.target.value)} required data-testid="reg-cnic" className="rounded-none focus-visible:ring-[#1B3B36]" />
           </Field>
           <Field label="Email" required>
@@ -67,6 +70,19 @@ export default function Register() {
           <Field label="Phone" required>
             <Input value={form.phone} onChange={(e)=>set("phone", e.target.value)} required data-testid="reg-phone" placeholder="e.g. +92 300 1234567" className="rounded-none focus-visible:ring-[#1B3B36]" />
           </Field>
+
+          <div className="md:col-span-2">
+            <Label className="uppercase-label">CNIC / PMDC card picture<span className="text-[#B0513A]"> *</span></Label>
+            <div className="mt-2">
+              <CnicUploader
+                value={form.cnic_card_data_url}
+                onChange={(v)=>set("cnic_card_data_url", v)}
+                label="CNIC / PMDC card"
+                testId="reg-cnic-img"
+              />
+            </div>
+          </div>
+
           {err && <div className="md:col-span-2 text-sm text-[#B0513A]" data-testid="reg-error">{err}</div>}
           <div className="md:col-span-2 flex items-center justify-between mt-2">
             <Link to="/login" className="text-sm text-[#5C6D68] underline">Already registered? Sign in.</Link>
@@ -88,3 +104,4 @@ function Field({ label, required, children }) {
     </div>
   );
 }
+

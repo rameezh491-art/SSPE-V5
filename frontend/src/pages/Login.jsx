@@ -28,6 +28,7 @@ export default function Login({ adminMode = false }) {
     }
     toast.success(`Welcome back, ${r.user.name}`);
     if (r.user.role === "admin") nav("/admin");
+    else if (r.user.role === "data_collector") nav("/data-collector");
     else nav("/doctor");
   };
 

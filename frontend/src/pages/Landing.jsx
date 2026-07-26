@@ -85,8 +85,11 @@ export default function Landing() {
               <Link to="/register" className="btn-pine px-6 py-3 text-sm font-semibold inline-flex items-center gap-2" data-testid="cta-register">
                 Register as Doctor <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link to="/login" className="btn-outline-pine px-6 py-3 text-sm font-semibold" data-testid="cta-login">
-                Sign in as Doctor
+              <Link to="/register-data-collector" className="btn-outline-pine px-6 py-3 text-sm font-semibold" data-testid="cta-register-dc">
+                Register as Data Collector
+              </Link>
+              <Link to="/login" className="px-6 py-3 text-sm font-semibold text-[#172320] hover:bg-[#F2F4F3]" data-testid="cta-login">
+                Sign in
               </Link>
               <Link to="/admin/login" className="px-6 py-3 text-sm font-semibold text-[#5C6D68] hover:text-[#172320]" data-testid="cta-admin">
                 Admin login →

@@ -11,6 +11,8 @@ import DoctorDashboard from "@/pages/DoctorDashboard";
 import PatientWizard from "@/pages/PatientWizard";
 import PatientDetail from "@/pages/PatientDetail";
 import AdminDashboard from "@/pages/AdminDashboard";
+import DataCollectorRegister from "@/pages/DataCollectorRegister";
+import DataCollectorDashboard from "@/pages/DataCollectorDashboard";
 
 function App() {
   return (
@@ -21,12 +23,15 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/register-data-collector" element={<DataCollectorRegister />} />
             <Route path="/admin/login" element={<Login adminMode />} />
 
             <Route path="/doctor" element={<ProtectedRoute role="doctor"><DoctorDashboard /></ProtectedRoute>} />
             <Route path="/doctor/patients/new" element={<ProtectedRoute role="doctor"><PatientWizard /></ProtectedRoute>} />
-            <Route path="/doctor/patients/:id" element={<ProtectedRoute role="doctor"><PatientDetail /></ProtectedRoute>} />
-            <Route path="/doctor/patients/:id/edit" element={<ProtectedRoute role="doctor"><PatientWizard /></ProtectedRoute>} />
+            <Route path="/doctor/patients/:id" element={<ProtectedRoute role={["doctor","data_collector"]}><PatientDetail /></ProtectedRoute>} />
+            <Route path="/doctor/patients/:id/edit" element={<ProtectedRoute role={["doctor","data_collector"]}><PatientWizard /></ProtectedRoute>} />
+
+            <Route path="/data-collector" element={<ProtectedRoute role="data_collector"><DataCollectorDashboard /></ProtectedRoute>} />
 
             <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
 

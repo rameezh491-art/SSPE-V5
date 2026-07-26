@@ -17,7 +17,7 @@ import { Search, Share2, Check, Users, Building2 } from "lucide-react";
  *  - myPatients: [{ id, section2: { full_name, city }, dykens_score, ... }]
  *  - onGranted: callback after successful grant
  */
-export default function ShareAccessDialog({ open, onOpenChange, myPatients = [], onGranted }) {
+export default function ShareAccessDialog({ open, onOpenChange, myPatients = [], presetTarget = null, onGranted }) {
   const [doctors, setDoctors] = useState([]);
   const [docQ, setDocQ] = useState("");
   const [targetId, setTargetId] = useState("");
@@ -30,14 +30,21 @@ export default function ShareAccessDialog({ open, onOpenChange, myPatients = [],
   useEffect(() => {
     if (!open) return;
     // reset each time it opens
-    setTargetId(""); setScope("all"); setSelected(new Set()); setDocQ(""); setPatientQ(""); setMessage("");
-    (async () => {
-      try {
-        const { data } = await api.get("/doctors");
-        setDoctors(data);
-      } catch (e) { toast.error(apiErrText(e)); }
-    })();
-  }, [open]);
+    setScope("all"); setSelected(new Set()); setDocQ(""); setPatientQ(""); setMessage("");
+    if (presetTarget?.id) {
+      setTargetId(presetTarget.id);
+      setDoctors([presetTarget]);
+    } else {
+      setTargetId("");
+      (async () => {
+        try {
+          const { data } = await api.get("/doctors");
+          setDoctors(data);
+        } catch (e) { toast.error(apiErrText(e)); }
+      })();
+    }
+    // eslint-disable-next-line
+  }, [open, presetTarget?.id]);
 
   const filteredDoctors = useMemo(() => {
     const q = docQ.trim().toLowerCase();
@@ -116,33 +123,42 @@ export default function ShareAccessDialog({ open, onOpenChange, myPatients = [],
         <div className="space-y-6 pt-2 max-h-[65vh] overflow-y-auto pr-1">
           {/* Step 1 — Target */}
           <section>
-            <Label className="uppercase-label">1 · Doctor to share with</Label>
-            <div className="mt-2 flex items-center border border-[#E5E7E5] bg-white px-3">
-              <Search className="w-4 h-4 text-[#5C6D68]"/>
-              <Input value={docQ} onChange={(e)=>setDocQ(e.target.value)} placeholder="Search doctor by name, specialty, hospital, city…" className="border-0 focus-visible:ring-0 shadow-none bg-transparent h-10" data-testid="share-doctor-search"/>
-            </div>
-            <div className="mt-2 max-h-52 overflow-auto border border-[#E5E7E5]">
-              {filteredDoctors.length === 0 && (
-                <div className="p-4 text-sm text-[#5C6D68]">No doctors match your search.</div>
-              )}
-              {filteredDoctors.map(d => (
-                <label key={d.id} className={`flex items-start gap-3 p-3 border-b border-[#E5E7E5] cursor-pointer ${targetId===d.id?"bg-[#F2F4F3]":"hover:bg-[#F9FAF9]"}`} data-testid={`share-doctor-${d.id}`}>
-                  <RadioGroup value={targetId} onValueChange={setTargetId} className="mt-0.5">
-                    <RadioGroupItem value={d.id} className="border-[#1B3B36] text-[#1B3B36]"/>
-                  </RadioGroup>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-[#172320]">{d.name}</div>
-                    <div className="text-xs text-[#5C6D68] flex items-center gap-2 mt-0.5">
-                      <span>{d.specialty}</span>
-                      <span className="text-[#E5E7E5]">·</span>
-                      <span className="inline-flex items-center gap-1"><Building2 className="w-3 h-3"/>{d.hospital}, {d.city}</span>
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-            {target && (
-              <div className="mt-2 text-xs text-[#2C3B37] flex items-center gap-1"><Check className="w-3.5 h-3.5 text-[#2F6B4C]"/>{targetPreview}</div>
+            <Label className="uppercase-label">1 · {presetTarget ? "Recipient (locked)" : "Doctor to share with"}</Label>
+            {presetTarget ? (
+              <div className="mt-2 p-3 border border-[#1B3B36] bg-[#F5F8F7]" data-testid="share-preset-target">
+                <div className="font-semibold text-[#172320]">{presetTarget.name}</div>
+                <div className="text-xs text-[#5C6D68] mt-0.5">{presetTarget.specialty || "Data Collector"} · {presetTarget.hospital || ""} {presetTarget.city ? `· ${presetTarget.city}` : ""}</div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-2 flex items-center border border-[#E5E7E5] bg-white px-3">
+                  <Search className="w-4 h-4 text-[#5C6D68]"/>
+                  <Input value={docQ} onChange={(e)=>setDocQ(e.target.value)} placeholder="Search doctor by name, specialty, hospital, city…" className="border-0 focus-visible:ring-0 shadow-none bg-transparent h-10" data-testid="share-doctor-search"/>
+                </div>
+                <div className="mt-2 max-h-52 overflow-auto border border-[#E5E7E5]">
+                  {filteredDoctors.length === 0 && (
+                    <div className="p-4 text-sm text-[#5C6D68]">No doctors match your search.</div>
+                  )}
+                  {filteredDoctors.map(d => (
+                    <label key={d.id} className={`flex items-start gap-3 p-3 border-b border-[#E5E7E5] cursor-pointer ${targetId===d.id?"bg-[#F2F4F3]":"hover:bg-[#F9FAF9]"}`} data-testid={`share-doctor-${d.id}`}>
+                      <RadioGroup value={targetId} onValueChange={setTargetId} className="mt-0.5">
+                        <RadioGroupItem value={d.id} className="border-[#1B3B36] text-[#1B3B36]"/>
+                      </RadioGroup>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-[#172320]">{d.name}</div>
+                        <div className="text-xs text-[#5C6D68] flex items-center gap-2 mt-0.5">
+                          <span>{d.specialty}</span>
+                          <span className="text-[#E5E7E5]">·</span>
+                          <span className="inline-flex items-center gap-1"><Building2 className="w-3 h-3"/>{d.hospital}, {d.city}</span>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {target && (
+                  <div className="mt-2 text-xs text-[#2C3B37] flex items-center gap-1"><Check className="w-3.5 h-3.5 text-[#2F6B4C]"/>{targetPreview}</div>
+                )}
+              </>
             )}
           </section>
 

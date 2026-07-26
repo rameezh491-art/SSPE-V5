@@ -26,6 +26,8 @@ export default function DoctorDashboard() {
   const [research, setResearch] = useState({ province: "", city: "", ethnicity: "", gender: "", age_min: "", age_max: "", symptoms_any: [], dykens_min: "", dykens_max: "", measles_vaccine_received: "" });
   const [researchResult, setResearchResult] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [dcRequests, setDcRequests] = useState([]);
+  const [shareForDc, setShareForDc] = useState(null); // { collector_id, collector_name, request_id }
 
   const isVerified = user?.status === "verified";
 
@@ -120,9 +122,16 @@ export default function DoctorDashboard() {
 
         <ShareAccessDialog
           open={shareOpen}
-          onOpenChange={setShareOpen}
+          onOpenChange={(v)=>{ setShareOpen(v); if (!v) setShareForDc(null); }}
           myPatients={mine}
-          onGranted={() => { loadPatients(); loadReqs(); }}
+          presetTarget={shareForDc?.target}
+          onGranted={async () => {
+            if (shareForDc?.request_id) {
+              try { await api.post(`/data-collector-requests/${shareForDc.request_id}/approve`); } catch {}
+            }
+            setShareForDc(null);
+            loadPatients(); loadReqs();
+          }}
         />
 
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
@@ -184,6 +193,37 @@ export default function DoctorDashboard() {
                     </div>
                     <StatusBadge status={r.status}/>
                   </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Data Collector requests */}
+            <div className="bg-white border border-[#E5E7E5] lg:col-span-2">
+              <div className="p-4 border-b border-[#E5E7E5] flex items-center justify-between">
+                <div className="font-display text-lg text-[#172320]">Data collector requests</div>
+                <div className="uppercase-label">Non-clinicians asking to enter data for you</div>
+              </div>
+              {dcRequests.length === 0 && <div className="p-6 text-sm text-[#5C6D68]">No data collector requests yet.</div>}
+              {dcRequests.map(r => (
+                <div key={r.id} className="p-4 border-b border-[#E5E7E5]" data-testid={`dc-req-in-${r.id}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[#172320]">{r.collector_name}</div>
+                      <div className="text-sm text-[#5C6D68]">{r.collector_email} · {r.collector_phone}</div>
+                      {r.message && <div className="mt-1 text-sm text-[#2C3B37] italic">"{r.message}"</div>}
+                    </div>
+                    <StatusBadge status={r.status}/>
+                  </div>
+                  {r.status === "pending" && (
+                    <div className="mt-3 flex gap-2">
+                      <Button size="sm" onClick={()=>{ setShareForDc({ target: { id: r.collector_id, name: r.collector_name, specialty: "Data Collector", hospital: r.collector_email, city: r.collector_phone }, request_id: r.id }); setShareOpen(true); }} className="btn-pine rounded-none" data-testid={`dc-approve-${r.id}`}>
+                        <Check className="w-3 h-3 mr-1"/>Approve &amp; choose patients
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={async ()=>{ await api.post(`/data-collector-requests/${r.id}/deny`); toast("Denied"); loadReqs(); }} className="rounded-none border-[#B0513A] text-[#B0513A] hover:bg-[#B0513A] hover:text-white" data-testid={`dc-deny-${r.id}`}>
+                        <X className="w-3 h-3 mr-1"/>Deny
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

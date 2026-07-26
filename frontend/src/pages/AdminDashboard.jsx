@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Check, X, ShieldOff, ShieldCheck, RefreshCcw, Settings } from "lucide-react";
+import { Search, Check, X, ShieldOff, ShieldCheck, RefreshCcw, Settings, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SiteSettings from "@/pages/SiteSettings";
 
@@ -16,17 +16,19 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [collectors, setCollectors] = useState([]);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
 
   const loadStats = async () => { try { const { data } = await api.get("/admin/stats"); setStats(data); } catch (e) { toast.error(apiErrText(e)); } };
   const loadDoctors = async () => { try { const { data } = await api.get("/admin/doctors", { params: { q, status: status||undefined } }); setDoctors(data); } catch (e) { toast.error(apiErrText(e)); } };
   const loadPatients = async () => { try { const { data } = await api.get("/admin/patients", { params: { q } }); setPatients(data); } catch (e) { toast.error(apiErrText(e)); } };
+  const loadCollectors = async () => { try { const { data } = await api.get("/admin/data-collectors", { params: { q, status: status||undefined } }); setCollectors(data); } catch (e) { toast.error(apiErrText(e)); } };
 
-  useEffect(() => { loadStats(); loadDoctors(); loadPatients(); /* eslint-disable-next-line */ }, []);
-  useEffect(() => { loadDoctors(); /* eslint-disable-next-line */ }, [status]);
+  useEffect(() => { loadStats(); loadDoctors(); loadPatients(); loadCollectors(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadDoctors(); loadCollectors(); /* eslint-disable-next-line */ }, [status]);
 
-  const act = async (path, msg) => { try { await api.post(path); toast.success(msg); loadDoctors(); loadStats(); } catch (e) { toast.error(apiErrText(e)); } };
+  const act = async (path, msg) => { try { await api.post(path); toast.success(msg); loadDoctors(); loadCollectors(); loadStats(); } catch (e) { toast.error(apiErrText(e)); } };
 
   return (
     <div className="App bg-[#FAFAFA] min-h-screen">
@@ -39,15 +41,16 @@ export default function AdminDashboard() {
           <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-px bg-[#E5E7E5] border border-[#E5E7E5]">
             <Stat label="Pending doctors" value={stats.doctors_pending} accent="text-[#C48F38]"/>
             <Stat label="Verified doctors" value={stats.doctors_verified} accent="text-[#2F6B4C]"/>
-            <Stat label="Suspended" value={stats.doctors_suspended} accent="text-[#B0513A]"/>
+            <Stat label="Data collectors" value={`${stats.data_collectors_verified ?? 0} / ${(stats.data_collectors_verified ?? 0) + (stats.data_collectors_pending ?? 0)}`} accent="text-[#1B3B36]"/>
             <Stat label="Patient records" value={stats.total_patients} accent="text-[#1B3B36]"/>
-            <Stat label="Pending edit reqs" value={stats.pending_edit_requests} accent="text-[#1B3B36]"/>
+            <Stat label="Pending requests" value={(stats.pending_edit_requests || 0) + (stats.pending_dc_requests || 0)} accent="text-[#B0513A]"/>
           </div>
         )}
 
         <Tabs value={tab} onValueChange={setTab} className="mt-8">
           <TabsList className="bg-white border border-[#E5E7E5] rounded-none">
             <TabsTrigger value="doctors" data-testid="admin-tab-doctors">Doctors</TabsTrigger>
+            <TabsTrigger value="collectors" data-testid="admin-tab-collectors"><ClipboardList className="w-3.5 h-3.5 mr-1.5"/>Data Collectors</TabsTrigger>
             <TabsTrigger value="patients" data-testid="admin-tab-patients">Patient Records</TabsTrigger>
             <TabsTrigger value="settings" data-testid="admin-tab-settings"><Settings className="w-3.5 h-3.5 mr-1.5"/>Site Settings</TabsTrigger>
           </TabsList>
@@ -102,6 +105,72 @@ export default function AdminDashboard() {
                           )}
                           {(d.status === "suspended" || d.status === "rejected") && (
                             <Button size="sm" className="btn-pine rounded-none h-7" onClick={()=>act(`/admin/doctors/${d.id}/reactivate`, `${d.name} reactivated`)}><ShieldCheck className="w-3 h-3 mr-1"/>Reactivate</Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="collectors" className="mt-6">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex-1 min-w-[220px] flex items-center border border-[#E5E7E5] bg-white px-3">
+                <Search className="w-4 h-4 text-[#5C6D68]"/>
+                <Input value={q} onChange={(e)=>setQ(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&loadCollectors()} placeholder="Name, email, CNIC, phone…" className="border-0 focus-visible:ring-0 shadow-none bg-transparent" data-testid="admin-search-collectors"/>
+              </div>
+              <div className="flex gap-1">
+                {["","pending","verified","suspended","rejected"].map(s => (
+                  <button key={s} onClick={()=>setStatus(s)} className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider border ${status===s?"bg-[#1B3B36] text-white border-[#1B3B36]":"bg-white border-[#E5E7E5] text-[#172320] hover:bg-[#F2F4F3]"}`}>
+                    {s || "All"}
+                  </button>
+                ))}
+              </div>
+              <Button onClick={loadCollectors} variant="outline" className="rounded-none btn-outline-pine"><RefreshCcw className="w-4 h-4 mr-1"/>Refresh</Button>
+            </div>
+            <div className="bg-white border border-[#E5E7E5] overflow-auto">
+              <Table>
+                <TableHeader className="bg-[#F2F4F3]">
+                  <TableRow>
+                    <TableHead className="uppercase-label">Name</TableHead>
+                    <TableHead className="uppercase-label">Email</TableHead>
+                    <TableHead className="uppercase-label">CNIC</TableHead>
+                    <TableHead className="uppercase-label">Phone</TableHead>
+                    <TableHead className="uppercase-label">ID card</TableHead>
+                    <TableHead className="uppercase-label">Status</TableHead>
+                    <TableHead className="uppercase-label">Granted</TableHead>
+                    <TableHead className="uppercase-label">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {collectors.map(d => (
+                    <TableRow key={d.id} className="row-hover" data-testid={`admin-dc-row-${d.id}`}>
+                      <TableCell className="font-semibold">{d.name}</TableCell>
+                      <TableCell className="text-sm">{d.email}</TableCell>
+                      <TableCell className="font-mono text-xs">{d.cnic}</TableCell>
+                      <TableCell className="text-sm">{d.phone}</TableCell>
+                      <TableCell>
+                        {d.id_card_data_url ? (
+                          <a href={d.id_card_data_url} target="_blank" rel="noreferrer" title="View ID card">
+                            <img src={d.id_card_data_url} alt="ID" className="w-14 h-10 object-cover border border-[#E5E7E5]"/>
+                          </a>
+                        ) : <span className="uppercase-label text-[#B0513A]">Missing</span>}
+                      </TableCell>
+                      <TableCell><StatusPill status={d.status}/></TableCell>
+                      <TableCell>{d.granted_records ?? 0}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {d.status === "pending" && <>
+                            <Button size="sm" className="btn-pine rounded-none h-7" onClick={()=>act(`/admin/data-collectors/${d.id}/verify`, `${d.name} verified`)} data-testid={`dc-verify-${d.id}`}><Check className="w-3 h-3 mr-1"/>Verify</Button>
+                            <Button size="sm" variant="outline" className="rounded-none h-7 border-[#B0513A] text-[#B0513A] hover:bg-[#B0513A] hover:text-white" onClick={()=>act(`/admin/data-collectors/${d.id}/reject`, `${d.name} rejected`)}><X className="w-3 h-3 mr-1"/>Reject</Button>
+                          </>}
+                          {d.status === "verified" && (
+                            <Button size="sm" variant="outline" className="rounded-none h-7 border-[#B0513A] text-[#B0513A] hover:bg-[#B0513A] hover:text-white" onClick={()=>act(`/admin/data-collectors/${d.id}/suspend`, `${d.name} suspended`)}><ShieldOff className="w-3 h-3 mr-1"/>Suspend</Button>
+                          )}
+                          {(d.status === "suspended" || d.status === "rejected") && (
+                            <Button size="sm" className="btn-pine rounded-none h-7" onClick={()=>act(`/admin/data-collectors/${d.id}/reactivate`, `${d.name} reactivated`)}><ShieldCheck className="w-3 h-3 mr-1"/>Reactivate</Button>
                           )}
                         </div>
                       </TableCell>

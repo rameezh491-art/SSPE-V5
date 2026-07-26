@@ -104,3 +104,20 @@ async def require_doctor_any(user: dict = Depends(get_current_user)):
     if user.get("role") != "doctor":
         raise HTTPException(status_code=403, detail="Doctor only")
     return user
+
+
+async def require_verified_data_collector(user: dict = Depends(get_current_user)):
+    if user.get("role") != "data_collector":
+        raise HTTPException(status_code=403, detail="Data collector only")
+    if user.get("status") != "verified":
+        raise HTTPException(status_code=403, detail=f"Account is {user.get('status', 'unverified')}. Please contact admin.")
+    return user
+
+
+async def require_verified_editor(user: dict = Depends(get_current_user)):
+    """Verified doctor OR verified data collector (both can edit granted records)."""
+    if user.get("role") not in ("doctor", "data_collector"):
+        raise HTTPException(status_code=403, detail="Doctor or data collector only")
+    if user.get("status") != "verified":
+        raise HTTPException(status_code=403, detail=f"Account is {user.get('status', 'unverified')}. Please contact admin.")
+    return user

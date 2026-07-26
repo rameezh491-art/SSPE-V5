@@ -13,6 +13,9 @@ export function ProtectedRoute({ children, role }) {
     );
   }
   if (!user) return <Navigate to="/login" state={{ from: loc }} replace />;
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (role) {
+    const allowed = Array.isArray(role) ? role : [role];
+    if (!allowed.includes(user.role)) return <Navigate to="/" replace />;
+  }
   return children;
 }

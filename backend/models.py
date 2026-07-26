@@ -54,6 +54,21 @@ class DoctorRegister(BaseModel):
     hospital: str
     city: str
     phone: str = Field(min_length=6, description="Contact phone number (required)")
+    cnic_card_data_url: str = Field(min_length=30, description="Base64 data URL of doctor's CNIC / ID card photo (required)")
+
+
+class DataCollectorRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str = Field(min_length=6)
+    cnic: str
+    phone: str = Field(min_length=6)
+    id_card_data_url: str = Field(min_length=30, description="Base64 data URL of ID card image (required)")
+
+
+class DCRequestCreate(BaseModel):
+    doctor_id: str
+    message: Optional[str] = ""
 
 
 class LoginRequest(BaseModel):

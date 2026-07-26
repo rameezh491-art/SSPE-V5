@@ -17,7 +17,8 @@ export default function PatientDetail() {
 
   const load = async () => {
     try {
-      const { data } = await api.get(`/patients/${id}`);
+      const path = user?.role === "data_collector" ? `/data-collector/patients/${id}` : `/patients/${id}`;
+      const { data } = await api.get(path);
       setP(data);
     } catch (e) { toast.error(apiErrText(e)); }
   };

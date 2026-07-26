@@ -54,6 +54,9 @@ export function AppHeader() {
               {user.role === "doctor" && !loc.pathname.startsWith("/doctor") && (
                 <Link to="/doctor" className="btn-outline-pine px-3 py-2 text-sm font-semibold" data-testid="nav-doctor-dashboard">Dashboard</Link>
               )}
+              {user.role === "data_collector" && !loc.pathname.startsWith("/data-collector") && (
+                <Link to="/data-collector" className="btn-outline-pine px-3 py-2 text-sm font-semibold" data-testid="nav-dc-dashboard">Dashboard</Link>
+              )}
               {user.role === "admin" && !loc.pathname.startsWith("/admin") && (
                 <Link to="/admin" className="btn-outline-pine px-3 py-2 text-sm font-semibold" data-testid="nav-admin-dashboard">Admin Panel</Link>
               )}

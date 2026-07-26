@@ -59,7 +59,8 @@ export default function PatientWizard() {
     if (!id) return;
     (async () => {
       try {
-        const { data } = await api.get(`/patients/${id}`);
+        const path = user?.role === "data_collector" ? `/data-collector/patients/${id}` : `/patients/${id}`;
+        const { data } = await api.get(path);
         setRec(data);
         setReadOnly(!data.can_edit);
       } catch (e) { toast.error(apiErrText(e)); }
@@ -84,7 +85,8 @@ export default function PatientWizard() {
       delete body.dykens_score; delete body.created_at; delete body.updated_at;
       delete body.can_edit; delete body.is_owner;
       if (isEditMode) {
-        const { data } = await api.put(`/patients/${id}`, body);
+        const path = user?.role === "data_collector" ? `/data-collector/patients/${id}` : `/patients/${id}`;
+        const { data } = await api.put(path, body);
         toast.success("Record updated");
         nav(`/doctor/patients/${data.id}`);
       } else {

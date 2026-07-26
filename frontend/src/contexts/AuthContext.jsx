@@ -75,13 +75,23 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const registerDataCollector = async (payload) => {
+    try {
+      const { data } = await api.post("/auth/register-data-collector", payload);
+      setUser(data.user);
+      return { ok: true, user: data.user };
+    } catch (e) {
+      return { ok: false, error: apiErrText(e) };
+    }
+  };
+
   const logout = async () => {
     try { await api.post("/auth/logout"); } catch {}
     setUser(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, register, logout, enums, settings, setSettings, refreshSettings }}>
+    <AuthContext.Provider value={{ user, setUser, login, register, registerDataCollector, logout, enums, settings, setSettings, refreshSettings }}>
       {children}
     </AuthContext.Provider>
   );

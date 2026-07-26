@@ -19,17 +19,18 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 
 from models import (
-    DoctorRegister, LoginRequest, PatientCreate, EditRequestCreate, ResearchQuery,
+    DoctorRegister, DataCollectorRegister, DCRequestCreate, LoginRequest, PatientCreate, EditRequestCreate, ResearchQuery,
     PROVINCES, ETHNICITIES, GENDERS, PARENTAL_STATUS, LIVES_WITH, EDUCATION_LEVELS,
     EMPLOYMENT_STATUS, HEALTHCARE_ACCESS, YES_NO_UNK, SYMPTOMS, LATERALITY_SYMPTOMS, SPECIALTIES,
 )
 from auth import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     set_auth_cookies, clear_auth_cookies, get_current_user, require_admin,
-    require_verified_doctor, require_doctor_any, _serialize_user, get_jwt_secret,
+    require_verified_doctor, require_doctor_any, require_verified_data_collector, require_verified_editor,
+    _serialize_user, get_jwt_secret,
 )
 import storage as objstore
-from seed import seed_admin, seed_doctors, seed_patients, write_test_credentials
+from seed import seed_admin, seed_doctors, seed_data_collectors, seed_patients, write_test_credentials
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("neurohistory")
@@ -98,6 +99,7 @@ async def startup():
     await db.audit_logs.create_index("patient_id")
     await seed_admin(db)
     await seed_doctors(db)
+    await seed_data_collectors(db)
     await seed_patients(db)
     await write_test_credentials()
     objstore.init_storage()
@@ -201,6 +203,8 @@ async def register(body: DoctorRegister, response: Response):
     email = body.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
+    if len(body.cnic_card_data_url) > 600_000:
+        raise HTTPException(status_code=413, detail="CNIC image too large (under 400 KB please)")
     doc = {
         "email": email,
         "password_hash": hash_password(body.password),
@@ -208,10 +212,38 @@ async def register(body: DoctorRegister, response: Response):
         "role": "doctor",
         "status": "pending",
         "cnic_or_pmdc": body.cnic_or_pmdc,
+        "cnic_card_data_url": body.cnic_card_data_url,
         "specialty": body.specialty,
         "hospital": body.hospital,
         "city": body.city,
-        "phone": body.phone or "",
+        "phone": body.phone,
+        "created_at": _now_iso(),
+    }
+    result = await db.users.insert_one(doc)
+    user = await db.users.find_one({"_id": result.inserted_id})
+    user_s = _serialize_user(user)
+    at = create_access_token(user_s["id"], user_s["email"], user_s["role"])
+    rt = create_refresh_token(user_s["id"])
+    set_auth_cookies(response, at, rt)
+    return {"user": user_s, "access_token": at}
+
+
+@api.post("/auth/register-data-collector")
+async def register_data_collector(body: DataCollectorRegister, response: Response):
+    email = body.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if len(body.id_card_data_url) > 600_000:
+        raise HTTPException(status_code=413, detail="ID card image too large (under 400 KB please)")
+    doc = {
+        "email": email,
+        "password_hash": hash_password(body.password),
+        "name": body.name,
+        "role": "data_collector",
+        "status": "pending",
+        "cnic": body.cnic,
+        "id_card_data_url": body.id_card_data_url,
+        "phone": body.phone,
         "created_at": _now_iso(),
     }
     result = await db.users.insert_one(doc)
@@ -229,7 +261,7 @@ async def login(body: LoginRequest, response: Response):
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    if user.get("role") == "doctor" and user.get("status") == "suspended":
+    if user.get("role") in ("doctor", "data_collector") and user.get("status") == "suspended":
         raise HTTPException(status_code=403, detail="Account suspended. Contact admin.")
     user_s = _serialize_user(user)
     at = create_access_token(user_s["id"], user_s["email"], user_s["role"])
@@ -354,8 +386,8 @@ async def get_patient(pid: str, user: dict = Depends(require_verified_doctor)):
 
 # ---------- Doctor directory (for share-access picker) ----------
 @api.get("/doctors")
-async def list_verified_doctors(q: Optional[str] = None, user: dict = Depends(require_verified_doctor)):
-    """Return verified doctors excluding the current user, for the share-access picker."""
+async def list_verified_doctors(q: Optional[str] = None, user: dict = Depends(require_verified_editor)):
+    """Return verified doctors excluding the current user (only if user is a doctor)."""
     filt: dict = {"role": "doctor", "status": "verified"}
     if q:
         filt["$or"] = [
@@ -369,7 +401,7 @@ async def list_verified_doctors(q: Optional[str] = None, user: dict = Depends(re
     out = []
     for d in docs:
         uid = str(d["_id"])
-        if uid == user["id"]:
+        if uid == user["id"] and user.get("role") == "doctor":
             continue
         out.append({
             "id": uid,
@@ -380,6 +412,120 @@ async def list_verified_doctors(q: Optional[str] = None, user: dict = Depends(re
             "email": d.get("email"),
         })
     return out
+
+
+# ---------- Data collector: request access to a doctor ----------
+@api.post("/data-collector-requests")
+async def create_dc_request(body: DCRequestCreate, user: dict = Depends(require_verified_data_collector)):
+    # Verify doctor
+    try:
+        doctor = await db.users.find_one({"_id": ObjectId(body.doctor_id), "role": "doctor"})
+    except Exception:
+        doctor = None
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    if doctor.get("status") != "verified":
+        raise HTTPException(status_code=400, detail="Doctor is not verified")
+    # Prevent duplicate pending
+    existing = await db.dc_requests.find_one({"doctor_id": body.doctor_id, "collector_id": user["id"], "status": "pending"})
+    if existing:
+        raise HTTPException(status_code=400, detail="A pending request already exists for this doctor")
+    req = {
+        "id": str(uuid.uuid4()),
+        "doctor_id": body.doctor_id,
+        "doctor_name": doctor.get("name"),
+        "collector_id": user["id"],
+        "collector_name": user["name"],
+        "collector_email": user.get("email"),
+        "collector_phone": user.get("phone", ""),
+        "message": body.message or "",
+        "status": "pending",
+        "created_at": _now_iso(),
+    }
+    await db.dc_requests.insert_one(req)
+    req.pop("_id", None)
+    return req
+
+
+@api.get("/data-collector-requests")
+async def list_dc_requests(user: dict = Depends(get_current_user)):
+    if user.get("role") == "doctor":
+        filt = {"doctor_id": user["id"]}
+    elif user.get("role") == "data_collector":
+        filt = {"collector_id": user["id"]}
+    elif user.get("role") == "admin":
+        filt = {}
+    else:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    reqs = await db.dc_requests.find(filt, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return reqs
+
+
+@api.post("/data-collector-requests/{rid}/deny")
+async def deny_dc_request(rid: str, user: dict = Depends(require_verified_doctor)):
+    req = await db.dc_requests.find_one({"id": rid})
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req["doctor_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only the addressed doctor can deny")
+    await db.dc_requests.update_one({"id": rid}, {"$set": {"status": "denied", "resolved_at": _now_iso()}})
+    return {"ok": True}
+
+
+@api.post("/data-collector-requests/{rid}/approve")
+async def approve_dc_request_mark(rid: str, user: dict = Depends(require_verified_doctor)):
+    """Mark the request approved. Actual patient grants happen via /api/patients/share-edit which the doctor triggers from the UI."""
+    req = await db.dc_requests.find_one({"id": rid})
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req["doctor_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only the addressed doctor can approve")
+    await db.dc_requests.update_one({"id": rid}, {"$set": {"status": "approved", "resolved_at": _now_iso()}})
+    return {"ok": True}
+
+
+# ---------- Data collector's granted patient records ----------
+@api.get("/data-collector/patients")
+async def dc_patients(q: Optional[str] = None, user: dict = Depends(require_verified_data_collector)):
+    filt: dict = {"authorized_editors": user["id"]}
+    if q:
+        filt["$or"] = [
+            {"section2.full_name": {"$regex": q, "$options": "i"}},
+            {"section2.city": {"$regex": q, "$options": "i"}},
+            {"id": q},
+        ]
+    docs = await db.patients.find(filt).sort("created_at", -1).limit(500).to_list(500)
+    return [_patient_out(d, user) for d in docs]
+
+
+@api.get("/data-collector/patients/{pid}")
+async def dc_patient_detail(pid: str, user: dict = Depends(require_verified_data_collector)):
+    p = await db.patients.find_one({"id": pid})
+    if not p:
+        raise HTTPException(status_code=404, detail="Not found")
+    if user["id"] not in (p.get("authorized_editors") or []):
+        raise HTTPException(status_code=403, detail="No access to this record")
+    return _patient_out(p, user)
+
+
+@api.put("/data-collector/patients/{pid}")
+async def dc_update_patient(pid: str, body: PatientCreate, user: dict = Depends(require_verified_data_collector)):
+    p = await db.patients.find_one({"id": pid})
+    if not p:
+        raise HTTPException(status_code=404, detail="Not found")
+    if user["id"] not in (p.get("authorized_editors") or []):
+        raise HTTPException(status_code=403, detail="No edit access")
+    data = body.model_dump()
+    updates = {
+        "section1": data["section1"], "section2": data["section2"], "section3": data["section3"],
+        "section4": data["section4"], "section5": data["section5"], "section6": data["section6"],
+        "section7": data["section7"], "dykens_score": _compute_dykens(data["section7"]),
+        "section8": data["section8"], "updated_at": _now_iso(),
+    }
+    await db.patients.update_one({"id": pid}, {"$set": updates})
+    await _audit(pid, user, "updated_by_data_collector", {"sections": list(updates.keys())})
+    p = await db.patients.find_one({"id": pid})
+    return _patient_out(p, user)
 
 
 # ---------- Bulk share edit access (owner-initiated) ----------
@@ -408,15 +554,15 @@ async def share_edit_access(body: dict, user: dict = Depends(require_verified_do
     if scope == "selected" and not patient_ids:
         raise HTTPException(status_code=400, detail="patient_ids is required when scope is 'selected'")
 
-    # Verify target is a verified doctor
+    # Verify target is a verified doctor or data collector
     try:
-        target = await db.users.find_one({"_id": ObjectId(target_id), "role": "doctor"})
+        target = await db.users.find_one({"_id": ObjectId(target_id), "role": {"$in": ["doctor", "data_collector"]}})
     except Exception:
         target = None
     if not target:
-        raise HTTPException(status_code=404, detail="Target doctor not found")
+        raise HTTPException(status_code=404, detail="Target user not found")
     if target.get("status") != "verified":
-        raise HTTPException(status_code=400, detail="Target doctor is not verified")
+        raise HTTPException(status_code=400, detail=f"Target {target.get('role', 'user')} is not verified")
 
     # Determine which patients to touch (must be owned by current user)
     owned_filter: dict = {"owner_id": user["id"]}
@@ -810,15 +956,68 @@ async def admin_stats(admin: dict = Depends(require_admin)):
     pending = await db.users.count_documents({"role": "doctor", "status": "pending"})
     verified = await db.users.count_documents({"role": "doctor", "status": "verified"})
     suspended = await db.users.count_documents({"role": "doctor", "status": "suspended"})
+    dc_pending = await db.users.count_documents({"role": "data_collector", "status": "pending"})
+    dc_verified = await db.users.count_documents({"role": "data_collector", "status": "verified"})
     total_patients = await db.patients.count_documents({})
     total_edit_reqs = await db.edit_requests.count_documents({"status": "pending"})
+    total_dc_reqs = await db.dc_requests.count_documents({"status": "pending"})
     return {
         "doctors_pending": pending,
         "doctors_verified": verified,
         "doctors_suspended": suspended,
+        "data_collectors_pending": dc_pending,
+        "data_collectors_verified": dc_verified,
         "total_patients": total_patients,
         "pending_edit_requests": total_edit_reqs,
+        "pending_dc_requests": total_dc_reqs,
     }
+
+
+# ---------- Admin: Data Collectors ----------
+@api.get("/admin/data-collectors")
+async def admin_list_data_collectors(q: Optional[str] = None, status: Optional[str] = None, admin: dict = Depends(require_admin)):
+    filt: dict = {"role": "data_collector"}
+    if status:
+        filt["status"] = status
+    if q:
+        filt["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}},
+            {"cnic": {"$regex": q, "$options": "i"}},
+            {"phone": {"$regex": q, "$options": "i"}},
+        ]
+    docs = await db.users.find(filt).sort("created_at", -1).to_list(500)
+    out = []
+    for d in docs:
+        u = _serialize_user(d)
+        u["granted_records"] = await db.patients.count_documents({"authorized_editors": u["id"]})
+        u["outgoing_requests"] = await db.dc_requests.count_documents({"collector_id": u["id"]})
+        out.append(u)
+    return out
+
+
+@api.post("/admin/data-collectors/{dc_id}/verify")
+async def admin_verify_dc(dc_id: str, admin: dict = Depends(require_admin)):
+    await db.users.update_one({"_id": ObjectId(dc_id), "role": "data_collector"}, {"$set": {"status": "verified"}})
+    return {"ok": True}
+
+
+@api.post("/admin/data-collectors/{dc_id}/reject")
+async def admin_reject_dc(dc_id: str, admin: dict = Depends(require_admin)):
+    await db.users.update_one({"_id": ObjectId(dc_id), "role": "data_collector"}, {"$set": {"status": "rejected"}})
+    return {"ok": True}
+
+
+@api.post("/admin/data-collectors/{dc_id}/suspend")
+async def admin_suspend_dc(dc_id: str, admin: dict = Depends(require_admin)):
+    await db.users.update_one({"_id": ObjectId(dc_id), "role": "data_collector"}, {"$set": {"status": "suspended"}})
+    return {"ok": True}
+
+
+@api.post("/admin/data-collectors/{dc_id}/reactivate")
+async def admin_reactivate_dc(dc_id: str, admin: dict = Depends(require_admin)):
+    await db.users.update_one({"_id": ObjectId(dc_id), "role": "data_collector"}, {"$set": {"status": "verified"}})
+    return {"ok": True}
 
 
 # ---------- Mount ----------
